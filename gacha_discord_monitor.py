@@ -10,7 +10,7 @@ TARGET_URL = "https://hasulivephoto.utoniq.com/gachas/wVmHBS26KrLVpN9Pdvul/items
 # 🚨 Threshold to trigger the rate alert (0.1072%)
 UR_THRESHOLD_RATE = 0.001072    
 
-# Read secrets from environment variables (configured in GitHub Repository Secrets)
+# Read secrets from environment variables
 DISCORD_WEBHOOK_URL = os.getenv("DISCORD_WEBHOOK_URL", "https://discord.com/api/webhooks/1569431042333351987/OOZVp44Z2tKL5Is7EMCGbevyWcY3AU6XHy-n6pvlKZ6iXB4s-qUtfEoYferDZzIBtIJv")
 DISCORD_USER_ID = os.getenv("DISCORD_USER_ID", "339264955826044929")
 
@@ -36,8 +36,47 @@ def save_current_state(ur_count):
         print(f"Failed to save state file: {e}")
 
 
+def send_discord_heartbeat(live_rate, ur_count, pool_count):
+    """Sends a clean, non-pinged status update card to Discord every time the script runs."""
+    rate_percentage = live_rate * 100
+    
+    payload = {
+        "embeds": [
+            {
+                "title": "🔍 Gacha Pool Scan Status",
+                "description": "Routine scheduled check completed successfully.",
+                "url": TARGET_URL,
+                "color": 3447003,  # Blue Accent
+                "fields": [
+                    {
+                        "name": "📈 Current UR Rate",
+                        "value": f"`{rate_percentage:.4f}%`",
+                        "inline": True
+                    },
+                    {
+                        "name": "📊 Inventory",
+                        "value": f"**UR Stock:** {ur_count} | **Total Pool:** {pool_count}",
+                        "inline": True
+                    }
+                ],
+                "footer": {
+                    "text": "HasuLivePhoto Automated Monitoring Service"
+                }
+            }
+        ]
+    }
+    try:
+        response = requests.post(DISCORD_WEBHOOK_URL, json=payload)
+        if response.status_code in (200, 204):
+            print("Successfully sent routine status update to Discord.")
+        else:
+            print(f"⚠️ Discord Webhook rejected heartbeat request with status code: {response.status_code}")
+    except Exception as e:
+        print(f"Failed to post heartbeat webhook: {e}")
+
+
 def send_discord_alert(live_rate, ur_count, pool_count, pulled_amount=0, reason="threshold"):
-    """Sends a clean, structured rich embed notification card directly to your Discord channel."""
+    """Sends a structured rich embed notification card with a user ping when an event occurs."""
     rate_percentage = live_rate * 100
     threshold_percentage = UR_THRESHOLD_RATE * 100
     
@@ -145,17 +184,20 @@ def main():
         live_rate, ur_count, pool_count = result
         print(f"UR Pool Index: {ur_count}/{pool_count} | Live Rate: {live_rate * 100:.4f}%")
         
-        # Check 1: Trigger alert if a UR item was pulled since last run
+        # 1. Send regular non-pinged heartbeat message every time it runs successfully
+        send_discord_heartbeat(live_rate, ur_count, pool_count)
+        
+        # 2. Check if a UR item was pulled since last run
         if previous_ur_count is not None and ur_count < previous_ur_count:
             pulled_amount = previous_ur_count - ur_count
             print(f"🎉 Detected UR pull! {pulled_amount} item(s) drawn.")
             send_discord_alert(live_rate, ur_count, pool_count, pulled_amount=pulled_amount, reason="ur_pulled")
         
-        # Check 2: Trigger alert if live rate exceeds threshold
+        # 3. Check if live rate exceeds threshold
         if live_rate > UR_THRESHOLD_RATE:
             send_discord_alert(live_rate, ur_count, pool_count, reason="threshold")
         
-        # Save state for the next scheduled GitHub Action workflow
+        # Save state for the next run
         save_current_state(ur_count)
     else:
         print("Execution finished without parsing result.")
