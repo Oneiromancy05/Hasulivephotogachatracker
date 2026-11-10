@@ -3,7 +3,7 @@ name: HasuLivePhoto Gacha Monitor
 on:
   repository_dispatch:
     types: [trigger_monitor]
-  workflow_dispatch: # Keep this so you can still run it manually from GitHub if needed
+  workflow_dispatch:
 
 jobs:
   scrape-and-notify:
@@ -17,23 +17,31 @@ jobs:
         uses: actions/setup-python@v5
         with:
           python-version: '3.11'
+          cache: 'pip' # Speeds up pip install
 
       - name: Install dependencies
         run: |
           python -m pip install --upgrade pip
           pip install -r requirements.txt
 
+      # Cache Playwright browser binaries so they aren't re-downloaded every time
+      - name: Cache Playwright browsers
+        uses: actions/cache@v4
+        id: playwright-cache
+        with:
+          path: ~/.cache/ms-playwright
+          key: ${{ runner.os }}-playwright-${{ hashFiles('**/requirements.txt') }}
+
       - name: Install Playwright Chromium with dependencies
+        if: steps.playwright-cache.outputs.cache-hit != 'true'
         run: |
           npx playwright install chromium --with-deps
 
-      - name: Restore previous state cache
+      - name: Restore state cache
         uses: actions/cache@v4
         with:
           path: state.json
           key: gacha-state-cache
-          restore-keys: |
-            gacha-state-
 
       - name: Run Monitoring Script
         env:
@@ -42,7 +50,7 @@ jobs:
         run: |
           python gacha_discord_monitor.py
 
-      - name: Save updated state back to cache
+      - name: Save state cache
         uses: actions/cache@v4
         with:
           path: state.json
