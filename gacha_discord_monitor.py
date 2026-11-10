@@ -11,8 +11,8 @@ TARGET_URL = "https://hasulivephoto.utoniq.com/gachas/wVmHBS26KrLVpN9Pdvul/items
 UR_THRESHOLD_RATE = 0.001072    
 
 # Read secrets from environment variables
-DISCORD_WEBHOOK_URL = os.getenv("DISCORD_WEBHOOK_URL", "https://discord.com/api/webhooks/1569431042333351987/OOZVp44Z2tKL5Is7EMCGbevyWcY3AU6XHy-n6pvlKZ6iXB4s-qUtfEoYferDZzIBtIJv")
-DISCORD_USER_ID = os.getenv("DISCORD_USER_ID", "339264955826044929")
+DISCORD_WEBHOOK_URL = os.getenv("DISCORD_WEBHOOK_URL")
+DISCORD_USER_ID = os.getenv("DISCOR_USER_ID", "")
 
 STATE_FILE = "state.json"
 
