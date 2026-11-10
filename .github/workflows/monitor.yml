@@ -1,7 +1,9 @@
 name: HasuLivePhoto Gacha Monitor
 
 on:
-  workflow_dispatch: # Allows external API triggers
+  repository_dispatch:
+    types: [trigger_monitor]
+  workflow_dispatch: # Keep this so you can still run it manually from GitHub if needed
 
 jobs:
   scrape-and-notify:
