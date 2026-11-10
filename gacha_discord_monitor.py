@@ -37,33 +37,12 @@ def save_current_state(ur_count):
 
 
 def send_discord_heartbeat(live_rate, ur_count, pool_count):
-    """Sends a clean, non-pinged status update card to Discord every time the script runs."""
+    """Sends the status line directly to Discord without any pings on every check."""
     rate_percentage = live_rate * 100
+    message = f"UR Pool Index: {ur_count}/{pool_count} | Live Rate: {rate_percentage:.4f}%"
     
     payload = {
-        "embeds": [
-            {
-                "title": "🔍 Gacha Pool Scan Status",
-                "description": "Routine scheduled check completed successfully.",
-                "url": TARGET_URL,
-                "color": 3447003,  # Blue Accent
-                "fields": [
-                    {
-                        "name": "📈 Current UR Rate",
-                        "value": f"`{rate_percentage:.4f}%`",
-                        "inline": True
-                    },
-                    {
-                        "name": "📊 Inventory",
-                        "value": f"**UR Stock:** {ur_count} | **Total Pool:** {pool_count}",
-                        "inline": True
-                    }
-                ],
-                "footer": {
-                    "text": "HasuLivePhoto Automated Monitoring Service"
-                }
-            }
-        ]
+        "content": message
     }
     try:
         response = requests.post(DISCORD_WEBHOOK_URL, json=payload)
@@ -184,7 +163,7 @@ def main():
         live_rate, ur_count, pool_count = result
         print(f"UR Pool Index: {ur_count}/{pool_count} | Live Rate: {live_rate * 100:.4f}%")
         
-        # 1. Send regular non-pinged heartbeat message every time it runs successfully
+        # 1. Send text status line every time it runs successfully
         send_discord_heartbeat(live_rate, ur_count, pool_count)
         
         # 2. Check if a UR item was pulled since last run
